@@ -28,12 +28,12 @@ data = pd.read_csv(file_path)
 # In[236]:
 
 
-#how individuals' support for political figures (independent variable) predicts their emotional expressions (dependent variable).
 
-#how these emotional expressions (now treated as an independent variable) predict their engagement in discussions related to elections and voting (another dependent variable).
-
-
-
+#H1: Being critical of Erdoğan relates to expressions of anger in Twitter better than being critical of Kılıçdaroğlu.
+#H2: Being critical of Erdoğan relates to expressions of fear in Twitter better than being critical of Kılıçdaroğlu.
+#H3: Being critical of Erdoğan relates to expressions of distress in Twitter better than being critical of Kılıçdaroğlu.
+#H4: Being critical of Erdoğan relates to expressions of sadness in Twitter better than being critical of Kılıçdaroğlu.
+#H5: Being critical of Erdoğan relates to expressions of hopelessness in Twitter better than being critical of Kılıçdaroğlu.
 
 # In[254]:
 
@@ -65,6 +65,7 @@ data['age_group_numeric']
 
 # In[242]:
 
+# code for correlation matrix#
 
 columns_for_pairplot = ['gender_numeric', 'age_group_numeric', 'total_tweet_num', '_2023_kk_pro', '_2023_erdogan_pro', '_2023_erdogan_against', '_2023_kk_against', '_2023_emotion_ofke', '_2023_emotion_korku','_2023_emotion_kaygi','_2023_emotion_uzuntu','_2023_emotion_umutsuzluk','_2023_topic_elections_and_voting']
 sns.pairplot(data[columns_for_pairplot])
@@ -82,27 +83,21 @@ import pandas as pd
 import statsmodels.api as sm
 
 def linear_regression_ols_multiple(X, Z, y):
-    # Convert X to a NumPy array and check if it's a vector
     X = np.asarray(X)
     if len(X.shape) == 1:
         X = X.reshape(-1, 1)
 
-    # Convert Z to a NumPy array and check if it's a vector
     Z = np.asarray(Z)
     if len(Z.shape) == 1:
         Z = Z.reshape(-1, 1)
 
-    # Add a column of ones to X for the intercept term
     X_with_intercept = np.column_stack((np.ones(X.shape[0]), X, Z))
 
-    # Fit the OLS model
     model = sm.OLS(y, X_with_intercept)
     results = model.fit()
 
     return results
 
-
-# Example data (assuming you have loaded 'data' DataFrame)
 X1 = data['_2023_kk_pro']
 X2 = data['_2023_erdogan_pro']
 X3 = data['_2023_erdogan_against']
@@ -143,16 +138,6 @@ results4 = linear_regression_ols_multiple(
     y4
 )
 
-# Print coefficients
-print("Intercept:", results.params[0])
-print("Coefficient for X1:", results.params[1])
-print("Coefficient for X2:", results.params[2])
-print("Coefficient for X3:", results.params[3])
-print("Coefficient for X4:", results.params[4])
-print("Coefficient for X5:", results.params[5])
-print("Coefficient for Z1:", results.params[6])
-print("Coefficient for Z2:", results.params[7])
-
 # Print summary statistics
 print(results.summary())
 print(results1.summary())
@@ -164,23 +149,18 @@ print(results4.summary())
 # In[264]:
 
 
-# Get residuals and fitted values
+# scatterplot for residuals vs. fitted values
 residuals = results.resid
 fitted_values = results.fittedvalues
 
-# Create a scatter plot of residuals against fitted values
 plt.figure(figsize=(8, 6))
 sns.scatterplot(x=fitted_values, y=residuals, color='blue', alpha=0.5)
-
-# Add a horizontal line at y=0 for reference
 plt.axhline(y=0, color='red', linestyle='--')
 
-# Set labels and title
 plt.xlabel('Fitted Values')
 plt.ylabel('Residuals')
 plt.title('Residuals vs. Fitted Values')
 
-# Show the plot
 plt.show()
 
 
@@ -188,27 +168,21 @@ plt.show()
 # In[265]:
 
 
-# Extract standardized residuals and leverage values
+# Losing outliers with Cook's distance
 standardized_residuals = results.get_influence().resid_studentized_internal
 leverage_values = results.get_influence().hat_matrix_diag
 
-# Calculate Cook's distance, a measure of influence
+# Calculate Cook's distance
 cook_distance = standardized_residuals ** 2 * leverage_values / (1 - leverage_values)
 
-# Set a threshold for Cook's distance to identify outliers
-threshold = 4 / len(y)  # You can adjust the threshold based on your data size
+threshold = 4 / len(y) 
 
-# Identify outliers based on Cook's distance
 outliers_cooks = np.where(cook_distance > threshold)[0]
 
 
 # In[266]:
 
-
-# Exclude outliers based on Cook's distance
 cleaned_data = data.drop(index=outliers_cooks)
-
-# Example data (assuming you have loaded 'cleaned_data' DataFrame)
 X1_cleaned = cleaned_data['_2023_kk_pro']
 X2_cleaned = cleaned_data['_2023_erdogan_pro']
 X3_cleaned = cleaned_data['_2023_erdogan_against']
@@ -222,16 +196,15 @@ y2_cleaned = cleaned_data['_2023_emotion_kaygi']
 y3_cleaned = cleaned_data['_2023_emotion_uzuntu']
 y4_cleaned = cleaned_data['_2023_emotion_umutsuzluk']
 
-# OLS regression with fixed effects for cleaned data
+# OLS regression for cleaned data
 results_cleaned = linear_regression_ols_multiple(np.column_stack((X1_cleaned, X2_cleaned, X3_cleaned, X4_cleaned, X5_cleaned)), np.column_stack((Z1_cleaned, Z2_cleaned)), y_cleaned)
 results1_cleaned = linear_regression_ols_multiple(np.column_stack((X1_cleaned, X2_cleaned, X3_cleaned, X4_cleaned, X5_cleaned)), np.column_stack((Z1_cleaned, Z2_cleaned)), y1_cleaned)
 results2_cleaned = linear_regression_ols_multiple(np.column_stack((X1_cleaned, X2_cleaned, X3_cleaned, X4_cleaned, X5_cleaned)), np.column_stack((Z1_cleaned, Z2_cleaned)), y2_cleaned)
 results3_cleaned = linear_regression_ols_multiple(np.column_stack((X1_cleaned, X2_cleaned, X3_cleaned, X4_cleaned, X5_cleaned)), np.column_stack((Z1_cleaned, Z2_cleaned)), y3_cleaned)
 results4_cleaned = linear_regression_ols_multiple(np.column_stack((X1_cleaned, X2_cleaned, X3_cleaned, X4_cleaned, X5_cleaned)), np.column_stack((Z1_cleaned, Z2_cleaned)), y4_cleaned)
 
+# Print summary statistics for cleaned data
 
-
-# Print coefficients for cleaned data
 print("Intercept (Overall Impact):", combined_results.params[0])
 print("Coefficient for X1:", combined_results.params[1])
 print("Coefficient for X2:", combined_results.params[2])
@@ -241,7 +214,6 @@ print("Coefficient for X5:", combined_results.params[5])
 print("Coefficient for Z1:", combined_results.params[6])
 print("Coefficient for Z2:", combined_results.params[7])
 
-# Print summary statistics for cleaned data
 print(results_cleaned.summary())
 print(results1_cleaned.summary())
 print(results2_cleaned.summary())
@@ -249,8 +221,8 @@ print(results3_cleaned.summary())
 print(results4_cleaned.summary())
 
 
-# In[230]:
-
+# In[230]
+#Coefficients with significance stars
 
 def print_coefficients_with_stars(results_cleaned):
     stars = ['***', '**', '*']
@@ -267,8 +239,6 @@ def print_coefficients_with_stars(results_cleaned):
             print(f'Coefficient {i}: {coef:.4f}')
 
 print_coefficients_with_stars(results_cleaned)
-
-# Print summary statistics for cleaned data
 print(results_cleaned.summary())
 
 
@@ -365,23 +335,19 @@ print(results4_cleaned.summary())
 
 
 # In[267]:
-
+#Calculating standardized coefficients
 
 def standardize_coefficients(results):
-    # Extract coefficients and standard errors
     coefficients = results.params.values
     std_errors = results.bse.values
     
-    # Standardize coefficients
     standardized_coeffs = coefficients / std_errors
     
     return standardized_coeffs
 
 def print_summary_with_standardized_coeffs(results, y_name):
-    # Standardize coefficients
     standardized_coeffs = standardize_coefficients(results)
     
-    # Create a summary table
     summary_table = {
         'Variable': ['Intercept', 'X1', 'X2', 'X3', 'X4','X5', 'Z1', 'Z2'],
         'Coefficient': results.params,
@@ -390,12 +356,10 @@ def print_summary_with_standardized_coeffs(results, y_name):
         'Standardized Coefficient': standardized_coeffs
     }
 
-    # Print the summary table with the y_name
     print(f"Summary for {y_name}")
     print(tabulate(summary_table, headers='keys', tablefmt='pretty'))
     print("\n")
 
-# Apply the function for each y value
 print_summary_with_standardized_coeffs(results_cleaned, 'y_cleaned')
 print_summary_with_standardized_coeffs(results1_cleaned, 'y1_cleaned')
 print_summary_with_standardized_coeffs(results2_cleaned, 'y2_cleaned')
